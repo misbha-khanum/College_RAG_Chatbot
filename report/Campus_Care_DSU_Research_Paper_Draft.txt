@@ -1,0 +1,243 @@
+================================================================================
+CAMPUS CARE: A ZERO-COST RETRIEVAL-AUGMENTED GENERATION (RAG) ASSISTANT FOR
+DAYANANDA SAGAR UNIVERSITY (DSU) STUDENT SUPPORT
+================================================================================
+
+1. ABSTRACT
+--------------------------------------------------------------------------------
+Universities receive thousands of recurring inquiries from prospective
+applicants, enrolled students, and parents regarding campus locations, degree
+programs, entrance examinations, eligibility criteria, fee structures,
+scholarships, hostel accommodation, placements, and medical or innovation
+facilities. Traditional university web portals distribute this information
+across numerous static pages and PDF handbooks, requiring time-consuming manual
+search. Conversely, standard general-purpose Large Language Models (LLMs) rely
+on static pre-training knowledge and frequently hallucinate institution-specific
+details such as tuition fees, admission dates, or official contact numbers.
+
+This project presents "Campus Care — Dayananda Sagar University (DSU) AI
+Student Support Assistant," a modular, end-to-end Retrieval-Augmented Generation
+(RAG) conversational system designed to deliver accurate, structured, and
+source-grounded responses. The platform operates on a 100% free-tier and local
+technology stack: HuggingFace "sentence-transformers/all-MiniLM-L6-v2" dense
+embeddings (384 dimensions), a persistent local ChromaDB vector database
+(vector_db_dir/), LangChain conversational orchestration
+(ConversationalRetrievalChain with ConversationBufferMemory), and Groq
+("openai/gpt-oss-120b") LLM inference.
+
+Institutional documents in .pdf, .md, and .txt formats are segmented into
+overlapping chunks (chunk_size=1200 characters, chunk_overlap=250 characters)
+and queried using top-k (k=5) semantic similarity search. Every assistant reply
+includes a Sources citation footer referencing the exact source file and
+official DSU URL when available, and gracefully escalates unanswered queries to
+admissions@dsu.edu.in or 080 46461800. A custom Gradio web interface
+(gradio_app.py) provides multi-turn chat, clickable quick starter prompts,
+downloadable PDF chat transcripts, and live document upload with hot-reloaded
+vector indexing.
+
+Keywords: Retrieval-Augmented Generation (RAG), Large Language Models,
+University Student Support, ChromaDB, LangChain, Gradio, Semantic Search,
+Dayananda Sagar University (DSU).
+
+
+2. INTRODUCTION AND MOTIVATION
+--------------------------------------------------------------------------------
+Higher education institutions maintain extensive, frequently updated
+documentation spanning academic regulations, school-wise curricula, admission
+policies, scholarship schemes, hostel rules, and placement records. For
+Dayananda Sagar University (DSU) in Bengaluru—which spans the Harohalli Main
+Campus (Kanakapura Road) and the Kudlu Gate City Innovation Campus (Hosur Main
+Road) across multiple constituent schools—navigating scattered web pages and
+multi-page PDF handbooks (such as BTechHandBook.pdf) can be overwhelming for
+students.
+
+Deploying a generic LLM directly as a university helpdesk introduces three
+major limitations:
+  (a) Hallucination: Unconstrained LLMs may invent non-existent degree
+      specializations, incorrect fee brackets, or outdated phone numbers.
+  (b) Knowledge Staleness: Fine-tuning an LLM whenever a new academic circular
+      or fee revision is published is computationally expensive and slow.
+  (c) Operational Cost: Commercial LLM and managed vector-database APIs incur
+      recurring subscription or per-token charges unsuitable for student or
+      academic prototypes.
+
+Campus Care resolves these issues by decoupling institutional knowledge from
+the language model through Retrieval-Augmented Generation (RAG), enabling
+instant knowledge updates via document ingestion while keeping inference and
+storage completely free-tier/local.
+
+
+3. PROBLEM STATEMENT AND OBJECTIVES
+--------------------------------------------------------------------------------
+Problem Statement:
+Design and implement a reliable, zero-cost AI student support assistant for
+Dayananda Sagar University (DSU) that answers multi-turn student queries
+strictly from verified university documents, cites its sources transparently,
+and supports live document uploads without server restarts.
+
+Project Objectives:
+  1. Build a verified DSU knowledge base in data/ covering campuses, helplines,
+     schools, programs, DSAT/admissions, fees, scholarships, placements,
+     hostels, library, transport, CDSIMER medical hospital, and AIC-DSU
+     innovation labs.
+  2. Implement a robust document ingestion pipeline (vectorize_documents.py)
+     supporting .pdf (PyPDF2 with pytesseract OCR fallback), .md, and .txt
+     files with overlapping text chunking (1200/250) and local ChromaDB storage.
+  3. Configure grounded RAG retrieval (k=5) and deterministic LLM generation
+     (Groq openai/gpt-oss-120b, temperature=0) with strict anti-hallucination
+     prompts and source-document citation footers.
+  4. Provide a modern, accessible Gradio web interface (gradio_app.py) branded
+     for DSU with live Upload & Index hot-reloading, quick starter prompts, and
+     PDF transcript export.
+
+
+4. SYSTEM ARCHITECTURE AND DATA FLOW
+--------------------------------------------------------------------------------
+The system follows a four-stage modular RAG architecture:
+
+  Stage 1: Data Acquisition & Knowledge Base (data/, fetch_dsu_docs.py)
+    - Structured Markdown knowledge files with "Source URL:" headers and
+      official PDF handbooks reside in data/.
+    - fetch_dsu_docs.py provides an automated requests + BeautifulSoup4 scraper
+      that strips HTML boilerplate (<nav>, <footer>, <script>, <style>) and
+      discovers linked PDF brochures from dsu.edu.in and admissions.dsu.edu.in.
+
+  Stage 2: Document Parsing, Chunking & Embedding (vectorize_documents.py)
+    - load_single_document() reads .pdf, .md, and .txt files and extracts
+      Source URL metadata when present.
+    - RecursiveCharacterTextSplitter splits text using chunk_size=1200 and
+      chunk_overlap=250 with hierarchical separators ["\n\n", "\n", " ", ""].
+    - HuggingFaceEmbeddings("sentence-transformers/all-MiniLM-L6-v2") encodes
+      each chunk into a 384-dimensional dense vector.
+    - Chroma persists vectors locally in vector_db_dir/.
+
+  Stage 3: Semantic Retrieval & Conversational Generation (gradio_app.py)
+    - User queries are embedded and matched against ChromaDB (search_kwargs={"k": 5}).
+    - ConversationBufferMemory preserves multi-turn dialogue context
+      (memory_key="chat_history", output_key="answer", return_messages=True).
+    - ConversationalRetrievalChain combines retrieved chunks, chat history, and
+      DSU system/negative prompts before invoking ChatGroq("openai/gpt-oss-120b").
+
+  Stage 4: Presentation, Citations & Export (gradio_app.py)
+    - Displays formatted Markdown responses with a Sources footer listing
+      unique source filenames and official URLs.
+    - Supports live document upload (ingest_files() + retriever hot-reload) and
+      chat transcript export to PDF via FPDF.
+
+
+5. KNOWLEDGE BASE COVERAGE (data/)
+--------------------------------------------------------------------------------
+The local knowledge base includes the following verified DSU documents:
+  1. data/dsu_campuses_and_helpline.md
+     - Harohalli Main Campus (Kanakapura Road, Bengaluru - 562 112)
+     - Kudlu Gate City Innovation Campus (Hosur Main Road, Bengaluru - 560 068)
+     - Admissions Helpline: 080 46461800 / 080 49092800 | admissions@dsu.edu.in
+  2. data/dsu_schools_and_programs.md
+     - School of Engineering (B.Tech & M.Tech specializations)
+     - School of Commerce & Management Studies (BBA, B.Com, MBA, Online)
+     - School of Computer Applications (BCA, MCA)
+     - School of Basic & Applied Sciences (B.Sc., M.Sc. incl. Data Science)
+     - School of Law (B.A. LL.B. Hons., B.B.A. LL.B. Hons., LL.B.)
+     - School of Health Sciences (Nursing, Pharmacy, Physiotherapy, CAHS)
+     - School of Design & Digital Trans-Media (B.Des) & Ph.D. programs
+  3. data/dsu_admissions_dsat_fees_scholarships.md
+     - DSAT entrance/scholarship test, KCET, COMEDK, JEE Main, CAT, MAT, NEET
+     - Program eligibility criteria, approximate fee brackets, and scholarships
+  4. data/dsu_placements_and_career_services.md
+     - Placement highlights, CIL training, 500+ recruiters, and Placement Cell
+       contacts
+  5. data/dsu_campus_life_hostels_medical_innovation.md
+     - Hostels, libraries, transport, CDSIMER Medical Hospital, and AIC-DSU /
+       industry-partnered Innovation Labs (NVIDIA, Bosch, IBM, Cisco, Autodesk)
+  6. data/BTechHandBook.pdf
+     - Official B.Tech handbook PDF
+
+
+6. IMPLEMENTATION DETAILS
+--------------------------------------------------------------------------------
+Core Modules:
+  - vectorize_documents.py:
+      * get_embeddings(): Initializes all-MiniLM-L6-v2.
+      * _extract_pdf_text(): Extracts text via PyPDF2 with pytesseract +
+        pdf2image OCR fallback if extracted text is empty.
+      * ingest_files(file_paths): Chunks and appends new documents to ChromaDB
+        without overwriting existing vectors.
+      * list_indexed_documents(): Lists active knowledge-base files in data/.
+      * rebuild_vector_store(): Clears and re-indexes all files in data/.
+  - gradio_app.py:
+      * Runs on http://localhost:7860 (server_name="localhost", server_port=7860,
+        inbrowser=True).
+      * Styled with Deep Royal Blue (#0B3D91), Warm Gold (#F59E0B), and soft
+        slate cards (#F8FAFC).
+      * Left sidebar: DSU Quick Contact & Campuses card, Knowledge Base & Upload
+        panel (multiple .pdf/.txt/.md upload + Upload & Index button), Indexed
+        Documents accordion, Export PDF button, and Clear Chat button.
+      * Main workspace: gr.Chatbot with copy/copy-all buttons, 4 clickable
+        Quick Starter Prompts, and source-cited answers.
+  - fetch_dsu_docs.py:
+      * Automated HTML-to-Markdown and PDF downloader for dsu.edu.in.
+
+
+7. TECHNOLOGY STACK
+--------------------------------------------------------------------------------
+  - Programming Language : Python 3.13.12
+  - LLM Provider         : Groq (langchain-groq, model: openai/gpt-oss-120b)
+  - Embedding Model      : HuggingFace (sentence-transformers/all-MiniLM-L6-v2)
+  - Vector Database      : ChromaDB (langchain-chroma, chromadb)
+  - Orchestration        : LangChain (langchain, langchain-classic,
+                           langchain-core, langchain-text-splitters)
+  - Web Interface        : Gradio 6.32.0
+  - Document Processing  : PyPDF2, pytesseract, BeautifulSoup4, requests, FPDF
+  - Environment Config   : python-dotenv (.env and config.json fallback)
+
+
+8. ENGINEERING CHALLENGES SOLVED & VERIFICATION
+--------------------------------------------------------------------------------
+  1. Windows Virtual Memory Limit (os error 1455):
+     Loading the default 768-dim all-mpnet-base-v2 model (~420 MB) triggered
+     "OSError: The paging file is too small for this operation to complete."
+     Switching to all-MiniLM-L6-v2 (~90 MB, 384-dim) resolved memory errors
+     and improved startup speed.
+  2. LangChain v0.2 -> v1.x Migration:
+     Updated legacy imports to langchain_classic, langchain_core, and
+     langchain_text_splitters for Python 3.13 compatibility.
+  3. Groq Model Compatibility:
+     Replaced deprecated llama-3.3-70b-versatile (404 model_not_found) with
+     openai/gpt-oss-120b.
+  4. End-to-End Verification:
+     - Syntax compilation (py_compile) passed across all Python modules.
+     - Vector store rebuild indexed all DSU documents cleanly into vector_db_dir/.
+     - Live RAG query test verified accurate DSU answers with Sources footers.
+     - Live ingest_files() test confirmed incremental chunk appending.
+     - Gradio server verified returning HTTP 200 on http://localhost:7860.
+
+
+9. CONCLUSION AND FUTURE SCOPE
+--------------------------------------------------------------------------------
+Campus Care demonstrates that a reliable, source-grounded, and extensible
+university student support assistant can be deployed locally at zero licensing
+cost. Future enhancements include:
+  - Hybrid search combining BM25 lexical matching with ChromaDB dense retrieval
+    for exact course codes and fee tables.
+  - Automated quantitative evaluation using RAGAS metrics (faithfulness, answer
+    relevance, and context precision).
+  - Role-based authentication for administrative document uploads and persistent
+    session storage.
+
+
+10. REFERENCES
+--------------------------------------------------------------------------------
+  [1] P. Lewis et al., "Retrieval-Augmented Generation for Knowledge-Intensive
+      NLP Tasks," Advances in Neural Information Processing Systems (NeurIPS),
+      2020.
+  [2] LangChain Documentation, "Conversational Retrieval & Vector Stores,"
+      https://www.langchain.com/
+  [3] ChromaDB Documentation, "Open-Source Embedding Database,"
+      https://www.trychroma.com/
+  [4] Hugging Face Sentence-Transformers, "all-MiniLM-L6-v2,"
+      https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
+  [5] Gradio Documentation, "Build & Share Machine Learning Web Apps,"
+      https://www.gradio.app/
+  [6] Dayananda Sagar University (DSU) Official Websites,
+      https://www.dsu.edu.in/ and https://admissions.dsu.edu.in/
+================================================================================
