@@ -2,6 +2,9 @@
 CAMPUS CARE: A ZERO-COST RETRIEVAL-AUGMENTED GENERATION (RAG) ASSISTANT FOR
 DAYANANDA SAGAR UNIVERSITY (DSU) STUDENT SUPPORT
 ================================================================================
+Author / Implemented By: Misbha (GitHub: misbha-khanum)
+Repository: https://github.com/misbha-khanum/College_RAG_Chatbot
+================================================================================
 
 1. ABSTRACT
 --------------------------------------------------------------------------------

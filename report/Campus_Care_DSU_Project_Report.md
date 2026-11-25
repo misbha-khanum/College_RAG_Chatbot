@@ -1,6 +1,7 @@
 # Project Report: Campus Care — Dayananda Sagar University (DSU) AI Student Support Assistant
 
-**Repository:** `College_RAG_Chatbot`  
+**Author / Implemented By:** Misbha (`misbha-khanum`)  
+**Repository:** `https://github.com/misbha-khanum/College_RAG_Chatbot`  
 **System Name:** Campus Care — Dayananda Sagar University (DSU) AI Student Support Assistant  
 **Architecture:** Retrieval-Augmented Generation (RAG) with Local Vector Search & Free-Tier LLM Inference  
 

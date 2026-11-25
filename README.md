@@ -1,5 +1,7 @@
 # Campus Care — Dayananda Sagar University (DSU) AI Student Support Assistant
 
+**Implemented by:** Misbha (`misbha-khanum`) — Personalized for Dayananda Sagar University (DSU)
+
 A local **Retrieval-Augmented Generation (RAG)** chatbot built for **Dayananda Sagar University (DSU)** students, applicants, and parents. It retrieves verified context from DSU documents (`.pdf`, `.md`, and `.txt`) stored in **ChromaDB** and generates source-cited answers via **Groq (`openai/gpt-oss-120b`)** inside a modern **Gradio** web interface.
 
 ---
